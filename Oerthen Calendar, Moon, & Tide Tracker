@@ -1,9 +1,7 @@
-/* 
-   Oerthen Day Tracker
-*/
+/* Oerthen Day Tracker */
 
 on("ready", function() {
-    // Starting on Earthday, 6th of Goodmonth, 576 CY
+    // Starting on Earthday, 6th of Goodmonth, 576 CY because tthats the day it was in game when made
     if (!state.OerthenCal || state.OerthenCal.year !== 576) {
         state.OerthenCal = { day: 214, year: 576 };
     }
@@ -21,9 +19,9 @@ on("ready", function() {
 
     const weekdays = ["Starday", "Sunday", "Moonday", "Godsday", "Waterday", "Earthday", "Freeday"];
 
-    // NEW LOGIC: Calculate based on the Day of the Month, not the Day of the Year
+    // Calculated based on the Day of the Month, not the Day of the Year
     const getLunaPhase = (dayOfMonth, monthName) => {
-        // If it's a festival month (6 days), Luna is in her transition/New Moon phase
+        // After a festival month (6 days), Luna is in her transition/New Moon phase
         if (monthName.includes("Festival")) return "New Moon (The Drain)";
         
         // Strict 28-day month alignment
@@ -78,10 +76,10 @@ on("ready", function() {
         const link = "[Open Calendar Handout](https://journal.roll20.net/handout/-Ooupua6EkjHIqB7alF3)";
 
         let pubOut = `&{template:default} {{name=Oerthen Day Tracker}} {{Date= ${d.weekday}, ${d.currentMonth} ${d.dayOfMonth} }} {{Year= ${d.year} CY }} {{Luna= ${luna} }} {{Celene= ${celene} }} {{ Tide= ${tide} }}{{Reference= ${link} }}`;
-        sendChat("System", pubOut);
+        sendChat("", pubOut);
         
         let gmOut = `/w gm &{template:default} {{name=GM Controls}} {{Time-Travel= [<- Prev Day](!oerthen prev) | [Next Day ->](!oerthen next) }}`;
-        sendChat("System", gmOut);
+        sendChat("Tracker", gmOut);
     };
 
     on("chat:message", function(msg) {
