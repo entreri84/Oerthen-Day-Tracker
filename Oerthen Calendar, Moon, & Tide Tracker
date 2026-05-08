@@ -1,0 +1,95 @@
+/* 
+   Oerthen Day Tracker
+*/
+
+on("ready", function() {
+    // Starting on Earthday, 6th of Goodmonth, 576 CY
+    if (!state.OerthenCal || state.OerthenCal.year !== 576) {
+        state.OerthenCal = { day: 214, year: 576 };
+    }
+
+    const calendar = [
+        { name: "Fireseek", days: 28 }, { name: "Readying", days: 28 }, { name: "Coldeven", days: 28 }, 
+        { name: "Growfest (Festival)", days: 6 },
+        { name: "Planting", days: 28 }, { name: "Flocktime", days: 28 }, { name: "Wealsun", days: 28 }, 
+        { name: "Richfest (Festival)", days: 6 },
+        { name: "Reaping", days: 28 }, { name: "Goodmonth", days: 28 }, { name: "Harvester", days: 28 }, 
+        { name: "Brewfest (Festival)", days: 6 },
+        { name: "Patchwall", days: 28 }, { name: "Ready'reat", days: 28 }, { name: "Sunsebb", days: 28 }, 
+        { name: "Needfest (Festival)", days: 6 }
+    ];
+
+    const weekdays = ["Starday", "Sunday", "Moonday", "Godsday", "Waterday", "Earthday", "Freeday"];
+
+    // NEW LOGIC: Calculate based on the Day of the Month, not the Day of the Year
+    const getLunaPhase = (dayOfMonth, monthName) => {
+        // If it's a festival month (6 days), Luna is in her transition/New Moon phase
+        if (monthName.includes("Festival")) return "New Moon (The Drain)";
+        
+        // Strict 28-day month alignment
+        if (dayOfMonth >= 11 && dayOfMonth <= 14) return "Full Moon (The Crest)";
+        if (dayOfMonth >= 25 || dayOfMonth <= 1) return "New Moon (The Drain)";
+        if (dayOfMonth > 1 && dayOfMonth < 7) return "Waxing Crescent";
+        if (dayOfMonth === 7) return "1st Quarter";
+        if (dayOfMonth >= 8 && dayOfMonth <= 10) return "Waxing Gibbous";
+        if (dayOfMonth >= 15 && dayOfMonth <= 20) return "Waning Gibbous";
+        if (dayOfMonth === 21) return "3rd Quarter";
+        if (dayOfMonth >= 22 && dayOfMonth <= 24) return "Waning Crescent";
+        return "Standard Phase";
+    };
+
+    const getCeleneStatus = (dayCount) => {
+        const festivalDays = [ [85, 90], [175, 180], [265, 270], [355, 360] ];
+        for (let range of festivalDays) {
+            if (dayCount >= range[0] && dayCount <= range[1]) {
+                return (dayCount === range[0] + 3) ? "SOLSTICE (The Surge)" : "Full Moon (Festival)";
+            }
+        }
+        let cyclePos = dayCount % 90;
+        if (cyclePos > 6 && cyclePos <= 48) return "Waning (Fading)";
+        return "Waxing (Brightening)";
+    };
+
+    const getDateInfo = () => {
+        let remainingDays = state.OerthenCal.day;
+        let currentMonth = "";
+        let dayOfMonth = 0;
+        for (let m of calendar) {
+            if (remainingDays <= m.days) {
+                currentMonth = m.name;
+                dayOfMonth = remainingDays;
+                break;
+            }
+            remainingDays -= m.days;
+        }
+        const weekday = weekdays[(state.OerthenCal.day + 1) % 7];
+        return { weekday, dayOfMonth, currentMonth, year: state.OerthenCal.year };
+    };
+
+    const showCalendar = () => {
+        const d = getDateInfo();
+        const luna = getLunaPhase(d.dayOfMonth, d.currentMonth);
+        const celene = getCeleneStatus(state.OerthenCal.day);
+        
+        let tide = "The Slack (Average Range)";
+        if (celene.includes("Full") || celene.includes("SOLSTICE")) tide = "THE SURGE (High Syzygy)";
+        else if (luna.includes("Crest")) tide = "THE CREST (High Tide)";
+        else if (luna.includes("Drain")) tide = "THE DRAIN (Extreme Ebb)";
+        const link = "[Open Calendar Handout](https://journal.roll20.net/handout/-Ooupua6EkjHIqB7alF3)";
+
+        let pubOut = `&{template:default} {{name=Oerthen Day Tracker}} {{Date= ${d.weekday}, ${d.currentMonth} ${d.dayOfMonth} }} {{Year= ${d.year} CY }} {{Luna= ${luna} }} {{Celene= ${celene} }} {{ Tide= ${tide} }}{{Reference= ${link} }}`;
+        sendChat("System", pubOut);
+        
+        let gmOut = `/w gm &{template:default} {{name=GM Controls}} {{Time-Travel= [<- Prev Day](!oerthen prev) | [Next Day ->](!oerthen next) }}`;
+        sendChat("System", gmOut);
+    };
+
+    on("chat:message", function(msg) {
+        if (msg.type !== "api" || !msg.content.startsWith("!oerthen")) return;
+        if (msg.content.includes("next")) state.OerthenCal.day++;
+        if (msg.content.includes("prev")) state.OerthenCal.day--;
+        if (state.OerthenCal.day > 360) { state.OerthenCal.day = 1; state.OerthenCal.year++; }
+        if (state.OerthenCal.day < 1) { state.OerthenCal.day = 360; state.OerthenCal.year--; }
+        showCalendar();
+    });
+});
